@@ -71,6 +71,7 @@ import { Headers } from 'apollo-server-env';
 import { buildServiceDefinition } from '@apollographql/apollo-tools';
 import { Logger } from "apollo-server-types";
 import { plugin as pluginTracing } from "apollo-tracing";
+import { plugin as pluginCacheControl, CacheControlExtensionOptions } from "apollo-cache-control";
 
 const NoIntrospection = (context: ValidationContext) => ({
   Field(node: FieldDefinitionNode) {
@@ -185,6 +186,8 @@ export class ApolloServerBase {
       playground,
       plugins,
       gateway,
+      cacheControl,
+      tracing,
       experimental_approximateDocumentStoreMiB,
       ...requestOptions
     } = config;
@@ -242,31 +245,6 @@ export class ApolloServerBase {
       requestOptions.validationRules = requestOptions.validationRules
         ? requestOptions.validationRules.concat(noIntro)
         : noIntro;
-    }
-
-    if (requestOptions.cacheControl !== false) {
-      if (
-        typeof requestOptions.cacheControl === 'boolean' &&
-        requestOptions.cacheControl === true
-      ) {
-        // cacheControl: true means that the user needs the cache-control
-        // extensions. This means we are running the proxy, so we should not
-        // strip out the cache control extension and not add cache-control headers
-        requestOptions.cacheControl = {
-          stripFormattedExtensions: false,
-          calculateHttpHeaders: false,
-          defaultMaxAge: 0,
-        };
-      } else {
-        // Default behavior is to run default header calculation and return
-        // no cacheControl extensions
-        requestOptions.cacheControl = {
-          stripFormattedExtensions: true,
-          calculateHttpHeaders: true,
-          defaultMaxAge: 0,
-          ...requestOptions.cacheControl,
-        };
-      }
     }
 
     if (!requestOptions.cache) {
@@ -783,6 +761,34 @@ export class ApolloServerBase {
 
     if (this.config.tracing) {
       pluginsToInit.push(pluginTracing())
+    }
+
+    if (this.config.cacheControl !== false) {
+      let cacheControlOptions: CacheControlExtensionOptions = {};
+      if (
+        typeof this.config.cacheControl === 'boolean' &&
+        this.config.cacheControl === true
+      ) {
+        // cacheControl: true means that the user needs the cache-control
+        // extensions. This means we are running the proxy, so we should not
+        // strip out the cache control extension and not add cache-control headers
+        cacheControlOptions = {
+          stripFormattedExtensions: false,
+          calculateHttpHeaders: false,
+          defaultMaxAge: 0,
+        };
+      } else {
+        // Default behavior is to run default header calculation and return
+        // no cacheControl extensions
+        cacheControlOptions = {
+          stripFormattedExtensions: true,
+          calculateHttpHeaders: true,
+          defaultMaxAge: 0,
+          ...this.config.cacheControl,
+        };
+      }
+
+      pluginsToInit.push(pluginCacheControl(cacheControlOptions));
     }
 
     this.plugins = pluginsToInit.map(plugin => {

@@ -17,7 +17,7 @@ import {
   GraphQLRequestContext,
   GraphQLResponse,
 } from './requestPipeline';
-import { CacheControlExtensionOptions } from 'apollo-cache-control';
+// import { CacheControlExtensionOptions } from 'apollo-cache-control';
 import { ApolloServerPlugin } from 'apollo-server-plugin-base';
 import { WithRequired, GraphQLExecutionResult } from 'apollo-server-types';
 
@@ -173,15 +173,15 @@ export async function runHttpQuery(
     // cacheControl defaults will also have been set if a boolean argument is
     // passed in.
     cache: options.cache!,
-    cacheControl: options.cacheControl as
-      | CacheControlExtensionOptions
-      | undefined,
+    // cacheControl: options.cacheControl as
+    //   | CacheControlExtensionOptions
+    //   | undefined,
     dataSources: options.dataSources,
     documentStore: options.documentStore,
 
     extensions: options.extensions,
     persistedQueries: options.persistedQueries,
-    tracing: options.tracing,
+    // tracing: options.tracing,
 
     formatError: options.formatError,
     formatResponse: options.formatResponse,

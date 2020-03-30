@@ -23,10 +23,6 @@ import {
   enablePluginsForSchemaResolvers,
 } from '.';
 import {
-  CacheControlExtension,
-  CacheControlExtensionOptions,
-} from 'apollo-cache-control';
-import {
   ApolloError,
   fromGraphQLError,
   SyntaxError,
@@ -95,7 +91,6 @@ export interface GraphQLRequestPipelineConfig<TContext> {
 
   extensions?: Array<() => GraphQLExtension>;
   persistedQueries?: PersistedQueryOptions;
-  cacheControl?: CacheControlExtensionOptions;
 
   formatError?: (error: GraphQLError) => GraphQLFormattedError;
   formatResponse?: (
@@ -124,7 +119,6 @@ export async function processGraphQLRequest<TContext>(
   // all of our own machinery will certainly set it now.
   const logger = requestContext.logger || console;
 
-  let cacheControlExtension: CacheControlExtension | undefined;
   const extensionStack = initializeExtensionStack();
   (requestContext.context as any)._extensionStack = extensionStack;
 
@@ -388,20 +382,6 @@ export async function processGraphQLRequest<TContext>(
       }
     }
 
-    if (cacheControlExtension) {
-      if (requestContext.overallCachePolicy) {
-        // If we read this response from a cache and it already has its own
-        // policy, teach that to cacheControlExtension so that it'll use the
-        // saved policy for HTTP headers. (If cacheControlExtension was a
-        // plugin, it could just read from the requestContext, but it isn't.)
-        cacheControlExtension.overrideOverallCachePolicy(
-          requestContext.overallCachePolicy,
-        );
-      } else {
-        requestContext.overallCachePolicy = cacheControlExtension.computeOverallCachePolicy();
-      }
-    }
-
     const formattedExtensions = extensionStack.format();
     if (Object.keys(formattedExtensions).length > 0) {
       response.extensions = formattedExtensions;
@@ -597,11 +577,6 @@ export async function processGraphQLRequest<TContext>(
     // If custom extension factories were provided, create per-request extension
     // objects.
     const extensions = config.extensions ? config.extensions.map(f => f()) : [];
-
-    if (config.cacheControl) {
-      cacheControlExtension = new CacheControlExtension(config.cacheControl);
-      extensions.push(cacheControlExtension);
-    }
 
     return new GraphQLExtensionStack(extensions);
   }
