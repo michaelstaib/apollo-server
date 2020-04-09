@@ -256,6 +256,7 @@ export async function processHTTPRequest<TContext>(
       // exported since perhaps as far back as Apollo Server 1.x.  Therefore,
       // for compatibility reasons, we'll default to `console`.
       logger: options.logger || console,
+      schema: options.schema,
       request,
       response: {
         http: {

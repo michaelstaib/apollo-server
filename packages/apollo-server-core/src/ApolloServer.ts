@@ -130,7 +130,7 @@ type SchemaDerivedData = {
   // on the same operation to be executed immediately.
   documentStore?: InMemoryLRUCache<DocumentNode>;
   schema: GraphQLSchema;
-  schemaHash: string;
+  schemaHash: SchemaHash;
   extensions: Array<() => GraphQLExtension>;
 };
 
@@ -158,8 +158,13 @@ export class ApolloServerBase {
   private parseOptions: GraphQLParseOptions;
   private schemaDerivedData: Promise<SchemaDerivedData>;
   private config: Config;
+
   /** @deprecated: This is undefined for servers operating as gateways, and will be removed in a future release **/
   protected schema?: GraphQLSchema;
+
+  /** @deprecated: This is undefined for servers operating as gateways, and will be removed in a future release **/
+  private schemaHash?: SchemaHash;
+
   private toDispose = new Set<() => void>();
   private experimental_approximateDocumentStoreMiB:
     Config['experimental_approximateDocumentStoreMiB'];
@@ -378,6 +383,7 @@ export class ApolloServerBase {
     if (isSchema(_schema)) {
       const derivedData = this.generateSchemaDerivedData(_schema);
       this.schema = derivedData.schema;
+      this.schemaHash = derivedData.schemaHash;
       this.schemaDerivedData = Promise.resolve(derivedData);
     } else if (typeof _schema.then === 'function') {
       this.schemaDerivedData = _schema.then(schema =>
@@ -819,7 +825,8 @@ export class ApolloServerBase {
   protected async graphQLServerOptions(
     integrationContextArgument?: Record<string, any>,
   ): Promise<GraphQLServerOptions> {
-    const { schema, documentStore, extensions } = await this.schemaDerivedData;
+    const { schema, schemaHash, documentStore, extensions }
+      = await this.schemaDerivedData;
 
     let context: Context = this.context ? this.context : {};
 
@@ -837,6 +844,7 @@ export class ApolloServerBase {
 
     return {
       schema,
+      schemaHash,
       logger: this.logger,
       plugins: this.plugins,
       documentStore,
@@ -866,6 +874,8 @@ export class ApolloServerBase {
 
     const requestCtx: GraphQLRequestContext = {
       logger: this.logger,
+      schema: options.schema,
+      schemaHash: options.schemaHash,
       request,
       context: options.context || Object.create(null),
       cache: options.cache!,
