@@ -41,5 +41,5 @@ export function generateSchemaHash(schema: GraphQLSchema): SchemaHash {
 
   return createSHA('sha512')
     .update(stringifiedSchema)
-    .digest('hex');
+    .digest('hex') as SchemaHash;
 }
